@@ -12,10 +12,15 @@ public class ItemController : ControllerBase
     private static int id = 0;
 
     [HttpPost]
-    public void CreateItem([FromBody] Item item)
+    public IActionResult AddItem([FromBody] Item item)
     {
         item.Id = id++;
         items.Add(item);
+        return CreatedAtAction(
+                nameof(GetItemById),
+                new { id = item.Id },
+                item
+                );
     }
 
     [HttpGet]
@@ -25,8 +30,10 @@ public class ItemController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public Item? GetItemById(int id)
+    public IActionResult GetItemById(int id)
     {
-        return items.FirstOrDefault(item => item.Id == id);
+        var item = items.FirstOrDefault(item => item.Id == id);
+        if (item == null) return NotFound();
+        return Ok(item);
     }
 }
