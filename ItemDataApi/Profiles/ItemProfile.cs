@@ -9,8 +9,7 @@ public class ItemProfile : Profile
     public ItemProfile()
     {
         CreateMap<CreateItemDto, Item>();
-        CreateMap<UpdateItemDto, Item>();
-        CreateMap<Item, UpdateItemDto>();
+        CreateMap<UpdateItemDto, Item>().ReverseMap();
         CreateMap<Item, ReadItemDto>();
     }
 }
