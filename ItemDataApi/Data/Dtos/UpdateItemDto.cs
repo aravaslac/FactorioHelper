@@ -1,14 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ItemDataApi.Models;
+namespace ItemDataApi.Data.Dtos;
 
-public class Item
+public class CreateItemDto
 {
-    [Key]
-    [Required]
-    public int Id { get; set; }
     [Required(ErrorMessage = "The name is required.")]
-    [MaxLength(255, ErrorMessage = "Name is too long.")]
+    [StringLength(255, ErrorMessage = "Name is too long.")]
     public string? Name { get; set; }
 
     [Required]

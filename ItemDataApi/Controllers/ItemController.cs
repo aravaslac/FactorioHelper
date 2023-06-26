@@ -1,4 +1,8 @@
-﻿using ItemDataApi.Models;
+﻿using AutoMapper;
+using ItemDataApi.Data;
+using ItemDataApi.Data.Dtos;
+using ItemDataApi.Models;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ItemDataApi.Controllers;
@@ -7,15 +11,21 @@ namespace ItemDataApi.Controllers;
 [Route("[controller]")]
 public class ItemController : ControllerBase
 {
+    private ItemContext _context;
+    private IMapper _mapper;
 
-    private static List<Item> items = new List<Item>();
-    private static int id = 0;
+    public ItemController(ItemContext context, IMapper mapper)
+    {
+        _context = context;
+        _mapper = mapper;
+    }
 
     [HttpPost]
-    public IActionResult AddItem([FromBody] Item item)
+    public IActionResult AddItem([FromBody] CreateItemDto itemDto)
     {
-        item.Id = id++;
-        items.Add(item);
+        Item item = _mapper.Map<Item>(itemDto);
+        _context.Items.Add(item);
+        _context.SaveChanges();
         return CreatedAtAction(
                 nameof(GetItemById),
                 new { id = item.Id },
@@ -24,16 +34,60 @@ public class ItemController : ControllerBase
     }
 
     [HttpGet]
-    public IEnumerable<Item> GetItems([FromQuery]int skip = 0, [FromQuery]int take = 10)
+    public IEnumerable<ReadItemDto> GetItems([FromQuery]int skip = 0, [FromQuery]int take = 10)
     {
-        return items.Skip(skip).Take(take);
+        return _mapper.Map<List<ReadItemDto>>(_context.Items.Skip(skip).Take(take));
     }
 
     [HttpGet("{id}")]
     public IActionResult GetItemById(int id)
     {
-        var item = items.FirstOrDefault(item => item.Id == id);
+        var item = _context.Items.FirstOrDefault(
+            item => item.Id == id);
         if (item == null) return NotFound();
+        var itemDto = _mapper.Map<ReadItemDto>(item);
         return Ok(item);
+    }
+
+    [HttpPut("{id}")]
+    public IActionResult UpdateItem(int id, [FromBody] UpdateItemDto itemDto)
+    {
+        var item = _context.Items.FirstOrDefault(
+            item => item.Id == id);
+        if (item == null) return NotFound();
+        _mapper.Map(itemDto, item);
+        _context.SaveChanges();
+        return NoContent();
+    }
+
+    [HttpPatch("{id}")]
+    public IActionResult UpdateItemPartially(int id, JsonPatchDocument<UpdateItemDto> patch)
+    {
+
+        var item = _context.Items.FirstOrDefault(
+            item => item.Id == id);
+        if (item == null) return NotFound();
+
+        var itemToUpdate = _mapper.Map<UpdateItemDto>(item);
+        patch.ApplyTo(itemToUpdate, ModelState);
+
+        if (!TryValidateModel(itemToUpdate))
+        {
+            return ValidationProblem(ModelState);
+        }
+        _mapper.Map(itemToUpdate, item);
+        _context.SaveChanges();
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public IActionResult DeleteItem(int id)
+    {
+        var item = _context.Items.FirstOrDefault(
+            item => item.Id == id);
+        if (item == null) return NotFound();
+        _context.Remove(item);
+        _context.SaveChanges();
+        return NoContent();
     }
 }
